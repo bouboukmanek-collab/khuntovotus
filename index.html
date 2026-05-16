@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votus - Sistem Pemilihan Terpadu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .toast { padding: 12px 24px; border-radius: 12px; margin-top: 10px; color: white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); transition: all 0.3s; }
+        .toast.success { background-color: #059669; }
+        .toast.error { background-color: #dc2626; }
+        @media print {
+            .no-print, header, nav, button, .admin-control-badge { display: none !important; }
+            .pane-content { display: block !important; border: none !important; margin: 0 !important; padding: 0 !important; }
+            body { background: white !important; color: black !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col">
+
+    <div id="toast-container"></div>
+
+    <div id="login-view" class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-green-600">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-extrabold text-green-700 dark:text-green-500 mb-2 italic tracking-tighter">PORTAL VOTUS</h1>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">Masuk untuk mengelola data pemilihan</p>
+            </div>
+            
+            <div id="login-error" class="hidden mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-xs text-center font-bold">
+                USERNAME ATAU PASSWORD SALAH!
+            </div>
+
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Username</label>
+                    <input type="text" id="username" class="w-full px-4 py-3 border dark:border-gray-600 dark:bg-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition" placeholder="Masukkan username" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1 uppercase text-gray-400">Password</label>
+                    <div class="relative">
+                        <input type="password" id="password" class="w-full px-4 py-3 border dark:border-gray-600 dark:bg-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition" placeholder="••••••••" required>
+                        <button type="button" onclick="togglePassword('password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600 transition">
+                            <svg class="w-5 h-5 eye-open" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <svg class="w-5 h-5 eye-closed hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.970 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88L4.22 4.22m13.99 13.99l2.12 2.12M3 3l3.29 3.29m8.09 8.09L21 21"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl shadow-lg transform active:scale-95 transition uppercase tracking-widest text-sm">
+                    MASUK KE SISTEM
+                </button>
+            </form>
+            <div class="mt-8 text-center text-[10px] text-gray-400 uppercase tracking-widest">
+                &copy; Votus System 2024 | khunto27/28
+            </div>
+        </div>
+    </div>
+
+    <div id="app-view" class="hidden flex-col min-h-screen">
+        <header class="bg-green-700 dark:bg-green-900 shadow-lg no-print">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-white p-1.5 rounded-lg">
+                            <svg class="w-6 h-6 text-green-700" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1a1 1 0 112 0v1a1 1 0 11-2 0zM13.464 14.95a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM10 8a2 2 0 100 4 2 2 0 000-4z"/></svg>
+                        </div>
+                        <h1 class="text-xl font-black text-white tracking-tighter uppercase italic">Votus</h1>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <button id="btn-refresh" class="p-2 text-white hover:bg-white/20 rounded-full transition" title="Refresh Data">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        </button>
+                        <button id="dark-mode-toggle" class="p-2 text-white hover:bg-white/20 rounded-full transition">
+                            <svg id="moon-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                            <svg id="sun-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        </button>
+                        <div class="h-6 w-[1px] bg-white/20 mx-2"></div>
+                        <span id="user-display" class="text-white text-[10px] font-black uppercase tracking-widest mr-2 hidden sm:block"></span>
+                        <button id="btn-logout" class="bg-red-500 hover:bg-red-600 text-white text-[10px] font-black px-4 py-2 rounded-lg transition uppercase">Logout</button>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="max-w-7xl mx-auto px-4 overflow-x-auto no-print">
+                <ul class="flex space-x-2" id="main-nav">
+                    <li><button data-target="home-pane" class="nav-btn active px-4 py-4 text-[10px] font-black text-white border-b-4 border-white transition-all uppercase tracking-widest">Home</button></li>
+                    <li><button data-target="input-pane" class="nav-btn px-4 py-4 text-[10px] font-black text-white opacity-60 hover:opacity-100 border-b-4 border-transparent transition-all uppercase tracking-widest">Input Votus</button></li>
+                    <li class="admin-only hidden"><button data-target="kandidat-pane" class="nav-btn px-4 py-4 text-[10px] font-black text-white opacity-60 hover:opacity-100 border-b-4 border-transparent transition-all uppercase tracking-widest">Kandidat</button></li>
+                    <li class="admin-only hidden"><button data-target="infografis-pane" class="nav-btn px-4 py-4 text-[10px] font-black text-white opacity-60 hover:opacity-100 border-b-4 border-transparent transition-all uppercase tracking-widest">Infografis</button></li>
+                    <li class="admin-only hidden"><button data-target="laporan-pane" class="nav-btn px-4 py-4 text-[10px] font-black text-white opacity-60 hover:opacity-100 border-b-4 border-transparent transition-all uppercase tracking-widest">Laporan</button></li>
+                    <li class="admin-only hidden"><button data-target="pengaturan-pane" class="nav-btn px-4 py-4 text-[10px] font-black text-white opacity-60 hover:opacity-100 border-b-4 border-transparent transition-all uppercase tracking-widest">Pengaturan</button></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-8">
+            <!-- Home Pane -->
+            <div id="home-pane" class="pane-content fade-in">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-10 text-center max-w-3xl mx-auto">
+                    <div class="w-24 h-24 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    </div>
+                    <h2 class="text-4xl font-black text-gray-800 dark:text-white mb-2 tracking-tighter uppercase italic">Selamat Datang</h2>
+                    <p class="text-gray-500 mb-10 text-sm font-medium">Sistem Dashboard Manajemen Suara Terpadu - Real Time Monitoring</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-xl mx-auto">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-2xl border dark:border-gray-600">
+                            <p class="text-3xl font-black text-green-600" id="home-total-suara">0</p>
+                            <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest mt-1">Total Suara Masuk</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-2xl border dark:border-gray-600">
+                            <p class="text-3xl font-black text-blue-600" id="home-total-kandidat">0</p>
+                            <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest mt-1">Kandidat Terdaftar</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Pane -->
+            <div id="input-pane" class="pane-content hidden fade-in max-w-4xl mx-auto">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-8">
+                    <h2 class="text-2xl font-black mb-8 flex items-center gap-3 uppercase italic tracking-tighter">
+                        <span class="w-2 h-8 bg-green-600 rounded-full"></span>
+                        Input Votus
+                    </h2>
+                    <form id="form-votus" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-gray-400 ml-1">No. Elitoral</label>
+                                <input type="text" id="no-elitoral" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" required>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-gray-400 ml-1">Naran Kompleitu</label>
+                                <input type="text" id="naran-kompleitu" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" required>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-gray-400 ml-1">Suku</label>
+                                <input type="text" id="suku" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" required>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-gray-400 ml-1">Postu</label>
+                                <input type="text" id="postu" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" required>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-gray-400 ml-1">Municipiu</label>
+                                <select id="municipiu-select" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" required>
+                                    <option value="" disabled selected>Pilih Municipiu</option>
+                                    <option value="Aileu">Aileu</option><option value="Ainaro">Ainaro</option><option value="Baucau">Baucau</option>
+                                    <option value="Bobonaro">Bobonaro</option><option value="Covalima">Covalima</option><option value="Dili">Dili</option>
+                                    <option value="Ermera">Ermera</option><option value="Lautem">Lautem</option><option value="Liquica">Liquica</option>
+                                    <option value="Manatuto">Manatuto</option><option value="Manufahi">Manufahi</option><option value="Viqueque">Viqueque</option>
+                                    <option value="RAEOA">RAEOA</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="bg-green-50 dark:bg-green-900/10 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 border border-green-100 dark:border-green-900/30">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-green-600 ml-1">Pilih Kandidat</label>
+                                <select id="naran-kandidat" class="w-full bg-white dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl" required></select>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-green-600 ml-1">Partidu</label>
+                                <input type="text" id="partidu" class="w-full bg-gray-100 dark:bg-gray-600 px-4 py-3 rounded-xl cursor-not-allowed font-bold" readonly placeholder="Otomatis">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-gray-400 ml-1">Valor Votus (Nilai)</label>
+                                <input type="number" id="valor-votus" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl" required min="1" value="1">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-black uppercase text-gray-400 ml-1">No. Telepon</label>
+                                <input type="tel" id="no-telepon" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl" required placeholder="+670">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-5 rounded-xl shadow-xl transition transform active:scale-95 uppercase tracking-widest">Simpan Data Votus</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Kandidat Pane -->
+            <div id="kandidat-pane" class="pane-content hidden fade-in max-w-6xl mx-auto">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-8 rounded-2xl border dark:border-gray-700 h-fit">
+                        <h2 class="text-xl font-black mb-6 uppercase italic tracking-tighter">Tambah Kandidat</h2>
+                        <form id="form-kandidat" class="space-y-5">
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-gray-400 ml-1">Nama Kandidat</label>
+                                <input type="text" id="input-naran-kandidatu" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl" required>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-gray-400 ml-1">Partai</label>
+                                <input type="text" id="input-naran-partidu" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-3 rounded-xl" required>
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl transition uppercase text-xs tracking-widest shadow-lg">Daftarkan Kandidat</button>
+                        </form>
+                    </div>
+                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-8 rounded-2xl border dark:border-gray-700 overflow-x-auto shadow-sm">
+                        <h2 class="text-xl font-black mb-6 uppercase italic tracking-tighter">Daftar Kandidat Aktif</h2>
+                        <table class="w-full text-sm">
+                            <thead><tr class="text-left border-b dark:border-gray-700"><th class="pb-4 text-[10px] font-black uppercase text-gray-400">No</th><th class="pb-4 text-[10px] font-black uppercase text-gray-400">Kandidat</th><th class="pb-4 text-[10px] font-black uppercase text-gray-400">Partai</th><th class="pb-4 text-right text-[10px] font-black uppercase text-gray-400">Opsi</th></tr></thead>
+                            <tbody id="kandidat-table-body" class="divide-y dark:divide-gray-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Infografis Pane -->
+            <div id="infografis-pane" class="pane-content hidden fade-in">
+                <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl border dark:border-gray-700 shadow-sm">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
+                        <div>
+                            <h2 class="text-3xl font-black italic tracking-tighter uppercase">Statistik Analitik</h2>
+                            <p class="text-[10px] text-gray-400 uppercase font-black tracking-[0.2em]">Live Data Distribution Report</p>
+                        </div>
+                        <button onclick="window.print()" class="no-print bg-black text-white px-6 py-3 rounded-xl flex items-center gap-3 text-[10px] font-black hover:bg-gray-800 transition uppercase shadow-lg">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                            Cetak Laporan Visual
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-2 border-b pb-2 border-green-100 dark:border-green-900">
+                                <span class="w-2 h-4 bg-green-500 rounded-full"></span>
+                                <h3 class="text-[10px] font-black text-green-600 uppercase tracking-widest">Perolehan Kandidat</h3>
+                            </div>
+                            <div id="chart-kandidat" class="space-y-6"></div>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-2 border-b pb-2 border-blue-100 dark:border-blue-900">
+                                <span class="w-2 h-4 bg-blue-500 rounded-full"></span>
+                                <h3 class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Sebaran Municipiu</h3>
+                            </div>
+                            <div id="chart-municipiu" class="space-y-6"></div>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-2 border-b pb-2 border-orange-100 dark:border-orange-900">
+                                <span class="w-2 h-4 bg-orange-500 rounded-full"></span>
+                                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest">Sebaran Postu</h3>
+                            </div>
+                            <div id="chart-postu" class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scroll"></div>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-2 border-b pb-2 border-purple-100 dark:border-purple-900">
+                                <span class="w-2 h-4 bg-purple-500 rounded-full"></span>
+                                <h3 class="text-[10px] font-black text-purple-600 uppercase tracking-widest">Sebaran Suku</h3>
+                            </div>
+                            <div id="chart-suku" class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scroll"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Laporan Pane -->
+            <div id="laporan-pane" class="pane-content hidden fade-in">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border dark:border-gray-700 overflow-hidden">
+                    <div class="p-8 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-700/20">
+                        <h2 class="font-black uppercase italic tracking-tighter text-xl">Laporan Master Data</h2>
+                        <button onclick="window.print()" class="no-print text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">Cetak Dokumen</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-100 dark:bg-gray-700/50">
+                                <tr>
+                                    <th class="p-5 text-[10px] font-black uppercase text-gray-500">No. Elitoral</th>
+                                    <th class="p-5 text-[10px] font-black uppercase text-gray-500">Naran</th>
+                                    <th class="p-5 text-[10px] font-black uppercase text-gray-500">Lokasi</th>
+                                    <th class="p-5 text-[10px] font-black uppercase text-gray-500">Kandidat</th>
+                                    <th class="p-5 text-[10px] font-black uppercase text-gray-500 text-right">Votus</th>
+                                </tr>
+                            </thead>
+                            <tbody id="laporan-table-body" class="divide-y dark:divide-gray-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pengaturan Pane -->
+            <div id="pengaturan-pane" class="pane-content hidden fade-in max-w-5xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="md:col-span-1 bg-white dark:bg-gray-800 p-8 rounded-3xl border dark:border-gray-700 shadow-sm">
+                        <h3 class="text-[10px] font-black uppercase text-gray-400 mb-8 tracking-[0.2em]">Akun Terdaftar</h3>
+                        <div id="user-list-container" class="space-y-4"></div>
+                    </div>
+                    
+                    <div class="md:col-span-2 bg-white dark:bg-gray-800 p-10 rounded-3xl border dark:border-gray-700 min-h-[400px] shadow-sm">
+                        <div id="edit-user-placeholder" class="h-full flex flex-col items-center justify-center text-gray-300 dark:text-gray-600 opacity-50">
+                            <svg class="w-20 h-20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <p class="font-black uppercase text-[10px] tracking-widest">Pilih Akun Untuk Dikelola</p>
+                        </div>
+                        
+                        <div id="edit-user-form-container" class="hidden">
+                            <h2 class="text-2xl font-black mb-8 flex items-center gap-3 uppercase italic tracking-tighter">
+                                <span class="text-green-600">Ubah Profil:</span>
+                                <span id="editing-user-name"></span>
+                            </h2>
+                            <form id="form-manage-user" class="space-y-6">
+                                <input type="hidden" id="target-user-id">
+                                <div>
+                                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Username Baru</label>
+                                    <input type="text" id="manage-new-username" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-4 rounded-xl focus:ring-2 focus:ring-green-500 outline-none font-bold" required>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Password Baru</label>
+                                    <div class="relative">
+                                        <input type="password" id="manage-new-password" class="w-full bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 px-4 py-4 rounded-xl focus:ring-2 focus:ring-green-500 outline-none font-bold" required>
+                                        <button type="button" onclick="togglePassword('manage-new-password', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600 transition">
+                                            <svg class="w-5 h-5 eye-open" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            <svg class="w-5 h-5 eye-closed hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.970 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88L4.22 4.22m13.99 13.99l2.12 2.12M3 3l3.29 3.29m8.09 8.09L21 21"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                                    <button type="button" onclick="cancelEditUser()" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-500 font-black py-4 rounded-xl transition uppercase text-xs">Batalkan</button>
+                                    <button type="submit" class="flex-[2] bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl shadow-lg transition uppercase text-xs tracking-widest">Update Akses Akun</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="no-print pb-6 text-center">
+            <p class="text-[9px] font-black uppercase text-gray-400 tracking-[0.3em]">
+                &copy; 2024 Votus System - khunto27/28
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // --- Database & Global State ---
+        let currentUser = null;
+        
+        // Fungsi untuk reset/inisialisasi User DB jika tidak ada atau error
+        function initUsers() {
+            const rawData = localStorage.getItem('users_db');
+            let data = {};
+            try {
+                data = JSON.parse(rawData);
+                // Jika data bukan object atau kosong, paksa default
+                if (!data || typeof data !== 'object' || Object.keys(data).length === 0) throw new Error();
+            } catch(e) {
+                data = {
+                    'khunto': { password: '123', role: 'admin' },
+                    'Kmanek': { password: '123', role: 'subadmin' }
+                };
+                localStorage.setItem('users_db', JSON.stringify(data));
+            }
+            return data;
+        }
+
+        let users = initUsers();
+        let candidatesDB = JSON.parse(localStorage.getItem('kandidat_db')) || [];
+        let votesDB = JSON.parse(localStorage.getItem('votus_db')) || [];
+
+        // --- Helper UI Functions ---
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if(!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast fade-in ${type} text-[10px] font-black uppercase tracking-widest`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        window.togglePassword = (inputId, btn) => {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const openIcon = btn.querySelector('.eye-open');
+            const closedIcon = btn.querySelector('.eye-closed');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                openIcon?.classList.add('hidden');
+                closedIcon?.classList.remove('hidden');
+            } else {
+                input.type = 'password';
+                openIcon?.classList.remove('hidden');
+                closedIcon?.classList.add('hidden');
+            }
+        };
+
+        function switchTab(id) {
+            if (!currentUser) return;
+            
+            // Hak Akses Ketat: Hanya Admin yang bisa masuk menu admin
+            const adminTabs = ['kandidat-pane', 'infografis-pane', 'laporan-pane', 'pengaturan-pane'];
+            if (adminTabs.includes(id) && currentUser.role !== 'admin') {
+                showToast("AKSES TERBATAS HANYA UNTUK ADMIN", "error");
+                return;
+            }
+
+            document.querySelectorAll('.pane-content').forEach(p => p.classList.add('hidden'));
+            const target = document.getElementById(id);
+            if(target) target.classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                const isActive = btn.dataset.target === id;
+                btn.classList.toggle('active', isActive);
+                btn.classList.toggle('border-white', isActive);
+                btn.classList.toggle('opacity-100', isActive);
+                btn.classList.toggle('opacity-60', !isActive);
+                btn.classList.toggle('border-transparent', !isActive);
+            });
+        }
+
+        // --- Data Update Functions ---
+        function refreshAllData() {
+            updateDashboard();
+            updateKandidatUI();
+            updateInfografis();
+            renderLaporan();
+            if (currentUser?.role === 'admin') renderUserList();
+        }
+
+        function updateDashboard() {
+            const total = votesDB.reduce((s, v) => s + (v.valorVotus || 0), 0);
+            const elTotal = document.getElementById('home-total-suara');
+            const elKan = document.getElementById('home-total-kandidat');
+            if(elTotal) elTotal.textContent = total.toLocaleString();
+            if(elKan) elKan.textContent = candidatesDB.length;
+        }
+
+        function updateKandidatUI() {
+            const tbody = document.getElementById('kandidat-table-body');
+            const select = document.getElementById('naran-kandidat');
+            if(!tbody || !select) return;
+
+            tbody.innerHTML = '';
+            select.innerHTML = '<option value="" disabled selected>Pilih Kandidat</option>';
+            
+            candidatesDB.forEach((k, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-5 text-xs font-black text-gray-400">${i+1}</td>
+                    <td class="py-5 font-bold text-gray-800 dark:text-white uppercase">${k.naran}</td>
+                    <td class="py-5 text-[10px] font-black uppercase text-gray-400">${k.partidu}</td>
+                    <td class="py-5 text-right"><button onclick="deleteKandidat('${k.id}')" class="text-red-500 font-black text-[10px] uppercase hover:bg-red-50 p-2 rounded-lg">Hapus</button></td>
+                `;
+                tbody.appendChild(tr);
+
+                const opt = document.createElement('option');
+                opt.value = k.id;
+                opt.textContent = `${k.naran} (${k.partidu})`;
+                select.appendChild(opt);
+            });
+        }
+
+        window.deleteKandidat = (id) => {
+            if(!confirm('Hapus kandidat ini?')) return;
+            candidatesDB = candidatesDB.filter(x => x.id !== id);
+            localStorage.setItem('kandidat_db', JSON.stringify(candidatesDB));
+            refreshAllData();
+            showToast('Kandidat Dihapus');
+        };
+
+        // --- Infografis & Stats ---
+        function updateInfografis() {
+            const total = votesDB.reduce((s, v) => s + (v.valorVotus || 0), 0);
+            const createBar = (label, value, totalVal, colorClass) => {
+                const pct = totalVal > 0 ? ((value / totalVal) * 100).toFixed(1) : 0;
+                return `
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between font-black text-[9px] uppercase tracking-widest">
+                            <span class="truncate mr-4">${label}</span>
+                            <span class="text-gray-400">${value.toLocaleString()} (${pct}%)</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full ${colorClass} transition-all duration-1000 shadow-sm" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const stats = { kand: {}, mun: {}, pos: {}, suku: {} };
+            votesDB.forEach(v => {
+                stats.kand[v.naranKandidat] = (stats.kand[v.naranKandidat] || 0) + (v.valorVotus || 0);
+                stats.mun[v.municipiu] = (stats.mun[v.municipiu] || 0) + (v.valorVotus || 0);
+                stats.pos[v.postu] = (stats.pos[v.postu] || 0) + (v.valorVotus || 0);
+                stats.suku[v.suku] = (stats.suku[v.suku] || 0) + (v.valorVotus || 0);
+            });
+
+            const render = (id, data, color) => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                const sorted = Object.entries(data).sort((a,b) => b[1]-a[1]);
+                el.innerHTML = sorted.length > 0 
+                    ? sorted.map(([k,v]) => createBar(k,v,total,color)).join('')
+                    : '<p class="text-[10px] text-gray-400 uppercase italic">Belum ada data...</p>';
+            };
+
+            render('chart-kandidat', stats.kand, 'bg-green-500');
+            render('chart-municipiu', stats.mun, 'bg-blue-500');
+            render('chart-postu', stats.pos, 'bg-orange-500');
+            render('chart-suku', stats.suku, 'bg-purple-500');
+        }
+
+        function renderLaporan() {
+            const tbody = document.getElementById('laporan-table-body');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            votesDB.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-5 font-mono font-bold text-gray-800 dark:text-gray-200">${v.noElitoral}</td>
+                    <td class="p-5 font-bold uppercase text-xs">${v.naranKompleitu}</td>
+                    <td class="p-5">
+                        <div class="text-[10px] font-black uppercase text-gray-400">${v.municipiu}</div>
+                        <div class="text-[9px] opacity-60">${v.postu}, ${v.suku}</div>
+                    </td>
+                    <td class="p-5">
+                        <div class="font-black text-green-600 text-xs uppercase">${v.naranKandidat}</div>
+                        <div class="text-[9px] uppercase tracking-tighter opacity-50">${v.partidu}</div>
+                    </td>
+                    <td class="p-5 text-right font-black text-lg">${v.valorVotus}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- Account Management ---
+        function renderUserList() {
+            const container = document.getElementById('user-list-container');
+            if(!container) return;
+            container.innerHTML = '';
+            Object.keys(users).forEach(u => {
+                const div = document.createElement('div');
+                div.className = "p-5 bg-gray-50 dark:bg-gray-700/30 rounded-2xl cursor-pointer hover:border-green-500 border border-transparent transition shadow-sm group";
+                div.onclick = () => selectUserToEdit(u);
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-black text-sm group-hover:text-green-600 transition uppercase">${u}</div>
+                            <div class="text-[9px] uppercase font-black text-gray-400 tracking-widest">${users[u].role}</div>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-300 group-hover:text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function selectUserToEdit(username) {
+            document.getElementById('edit-user-placeholder').classList.add('hidden');
+            const formCont = document.getElementById('edit-user-form-container');
+            formCont.classList.remove('hidden');
+            document.getElementById('editing-user-name').textContent = username;
+            document.getElementById('target-user-id').value = username;
+            document.getElementById('manage-new-username').value = username;
+            document.getElementById('manage-new-password').value = users[username].password;
+        }
+
+        window.cancelEditUser = () => {
+            document.getElementById('edit-user-placeholder').classList.remove('hidden');
+            document.getElementById('edit-user-form-container').classList.add('hidden');
+        };
+
+        // --- Initialization & Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Dark Mode
+            const themeBtn = document.getElementById('dark-mode-toggle');
+            if (localStorage.getItem('votus-dark') === 'true') {
+                document.documentElement.classList.add('dark');
+                document.getElementById('moon-icon')?.classList.add('hidden');
+                document.getElementById('sun-icon')?.classList.remove('hidden');
+            }
+
+            themeBtn?.addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('votus-dark', isDark);
+                document.getElementById('moon-icon')?.classList.toggle('hidden', isDark);
+                document.getElementById('sun-icon')?.classList.toggle('hidden', !isDark);
+            });
+
+            // Login Logic
+            document.getElementById('login-form')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const u = document.getElementById('username').value.trim();
+                const p = document.getElementById('password').value;
+
+                if (users[u] && users[u].password === p) {
+                    currentUser = { id: u, ...users[u] };
+                    
+                    // Sembunyikan/Tampilkan elemen admin
+                    document.querySelectorAll('.admin-only').forEach(el => {
+                        el.classList.toggle('hidden', currentUser.role !== 'admin');
+                    });
+                    
+                    document.getElementById('user-display').textContent = u;
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('app-view').classList.remove('hidden');
+                    document.getElementById('app-view').classList.add('flex');
+                    
+                    refreshAllData();
+                    showToast(`SELAMAT DATANG, ${u.toUpperCase()}!`);
+                } else {
+                    document.getElementById('login-error').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('login-error').classList.add('hidden'), 3000);
+                }
+            });
+
+            document.getElementById('btn-logout')?.addEventListener('click', () => location.reload());
+
+            // Nav Tabs
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => switchTab(e.currentTarget.dataset.target));
+            });
+
+            // Form Handlers
+            const kanSelect = document.getElementById('naran-kandidat');
+            const partInput = document.getElementById('partidu');
+            kanSelect?.addEventListener('change', () => {
+                const k = candidatesDB.find(x => x.id === kanSelect.value);
+                if(partInput) partInput.value = k ? k.partidu : '';
+            });
+
+            document.getElementById('form-votus')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const kId = kanSelect.value;
+                const k = candidatesDB.find(x => x.id === kId);
+                if(!k) return showToast("PILIH KANDIDAT!", "error");
+
+                votesDB.push({
+                    noElitoral: document.getElementById('no-elitoral').value,
+                    naranKompleitu: document.getElementById('naran-kompleitu').value,
+                    suku: document.getElementById('suku').value,
+                    postu: document.getElementById('postu').value,
+                    municipiu: document.getElementById('municipiu-select').value,
+                    naranKandidat: k.naran,
+                    partidu: k.partidu,
+                    valorVotus: parseInt(document.getElementById('valor-votus').value),
+                    noTelepon: document.getElementById('no-telepon').value
+                });
+                localStorage.setItem('votus_db', JSON.stringify(votesDB));
+                e.target.reset();
+                if(partInput) partInput.value = '';
+                refreshAllData();
+                showToast('DATA VOTUS BERHASIL DISIMPAN');
+            });
+
+            document.getElementById('form-kandidat')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                candidatesDB.push({
+                    id: Date.now().toString(),
+                    naran: document.getElementById('input-naran-kandidatu').value,
+                    partidu: document.getElementById('input-naran-partidu').value
+                });
+                localStorage.setItem('kandidat_db', JSON.stringify(candidatesDB));
+                e.target.reset();
+                refreshAllData();
+                showToast('KANDIDAT BARU TERDAFTAR');
+            });
+
+            document.getElementById('form-manage-user')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const oldId = document.getElementById('target-user-id').value;
+                const newU = document.getElementById('manage-new-username').value.trim();
+                const newP = document.getElementById('manage-new-password').value;
+
+                if (newU !== oldId && users[newU]) return showToast('USERNAME SUDAH DIGUNAKAN!', 'error');
+
+                const userData = { ...users[oldId], password: newP };
+                if (newU !== oldId) {
+                    delete users[oldId];
+                    users[newU] = userData;
+                    if (currentUser.id === oldId) {
+                        currentUser.id = newU;
+                        document.getElementById('user-display').textContent = newU;
+                    }
+                } else {
+                    users[oldId].password = newP;
+                }
+
+                localStorage.setItem('users_db', JSON.stringify(users));
+                showToast('AKSES AKUN DIPERBARUI');
+                cancelEditUser();
+                renderUserList();
+            });
+
+            document.getElementById('btn-refresh')?.addEventListener('click', () => {
+                refreshAllData();
+                showToast('DATA TELAH DIMUAT ULANG');
+            });
+        });
+    </script>
+</body>
+</html>
